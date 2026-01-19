@@ -1,0 +1,202 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Real Lab Smart Portal - Medical Theme Design System */
+
+@layer base {
+  :root {
+    /* Medical-inspired color palette */
+    --background: 210 30% 98%;
+    --foreground: 210 40% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 210 40% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 40% 15%;
+
+    /* Medical teal/blue primary */
+    --primary: 187 72% 38%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 25% 94%;
+    --secondary-foreground: 210 40% 20%;
+
+    --muted: 210 20% 96%;
+    --muted-foreground: 210 15% 45%;
+
+    /* Soft medical accent */
+    --accent: 187 50% 92%;
+    --accent-foreground: 187 72% 28%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Success green for medical */
+    --success: 152 60% 42%;
+    --success-foreground: 0 0% 100%;
+
+    /* Warning amber */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 210 25% 88%;
+    --input: 210 25% 88%;
+    --ring: 187 72% 38%;
+
+    --radius: 0.75rem;
+
+    /* Medical chart colors */
+    --chart-1: 187 72% 38%;
+    --chart-2: 152 60% 42%;
+    --chart-3: 210 70% 50%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 340 65% 55%;
+
+    /* Typography */
+    --font-sans: 'Inter', 'IBM Plex Sans Arabic', ui-sans-serif, system-ui, sans-serif;
+    --font-arabic: 'IBM Plex Sans Arabic', 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+    /* Medical shadows - soft and clinical */
+    --shadow-sm: 0 1px 2px 0 hsl(210 30% 15% / 0.04);
+    --shadow: 0 1px 3px 0 hsl(210 30% 15% / 0.08), 0 1px 2px -1px hsl(210 30% 15% / 0.08);
+    --shadow-md: 0 4px 6px -1px hsl(210 30% 15% / 0.08), 0 2px 4px -2px hsl(210 30% 15% / 0.06);
+    --shadow-lg: 0 10px 15px -3px hsl(210 30% 15% / 0.08), 0 4px 6px -4px hsl(210 30% 15% / 0.06);
+    --shadow-xl: 0 20px 25px -5px hsl(210 30% 15% / 0.08), 0 8px 10px -6px hsl(210 30% 15% / 0.06);
+
+    /* Card hover effect */
+    --shadow-card-hover: 0 12px 24px -4px hsl(187 72% 38% / 0.12), 0 4px 8px -2px hsl(187 72% 38% / 0.08);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 210 40% 15%;
+    --sidebar-primary: 187 72% 38%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 187 50% 92%;
+    --sidebar-accent-foreground: 187 72% 28%;
+    --sidebar-border: 210 25% 88%;
+    --sidebar-ring: 187 72% 38%;
+    --sidebar: 0 0% 98%;
+  }
+
+  .dark {
+    --background: 210 35% 8%;
+    --foreground: 210 20% 95%;
+
+    --card: 210 35% 12%;
+    --card-foreground: 210 20% 95%;
+
+    --popover: 210 35% 12%;
+    --popover-foreground: 210 20% 95%;
+
+    --primary: 187 65% 50%;
+    --primary-foreground: 210 35% 8%;
+
+    --secondary: 210 30% 18%;
+    --secondary-foreground: 210 20% 95%;
+
+    --muted: 210 30% 18%;
+    --muted-foreground: 210 15% 60%;
+
+    --accent: 187 40% 20%;
+    --accent-foreground: 187 65% 70%;
+
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 50% 35%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 85% 45%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 210 30% 22%;
+    --input: 210 30% 22%;
+    --ring: 187 65% 50%;
+
+    --chart-1: 187 65% 50%;
+    --chart-2: 152 50% 45%;
+    --chart-3: 210 60% 55%;
+    --chart-4: 38 85% 50%;
+    --chart-5: 340 60% 55%;
+
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.2);
+    --shadow: 0 1px 3px 0 hsl(0 0% 0% / 0.25), 0 1px 2px -1px hsl(0 0% 0% / 0.25);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.25), 0 2px 4px -2px hsl(0 0% 0% / 0.2);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.25), 0 4px 6px -4px hsl(0 0% 0% / 0.2);
+    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.25), 0 8px 10px -6px hsl(0 0% 0% / 0.2);
+    --shadow-card-hover: 0 12px 24px -4px hsl(187 65% 50% / 0.2), 0 4px 8px -2px hsl(187 65% 50% / 0.15);
+
+    --sidebar-background: 210 35% 10%;
+    --sidebar-foreground: 210 20% 95%;
+    --sidebar-primary: 187 65% 50%;
+    --sidebar-primary-foreground: 210 35% 8%;
+    --sidebar-accent: 187 40% 20%;
+    --sidebar-accent-foreground: 187 65% 70%;
+    --sidebar-border: 210 30% 22%;
+    --sidebar-ring: 187 65% 50%;
+    --sidebar: 210 35% 10%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+  }
+
+  /* RTL Support */
+  [dir="rtl"] body {
+    font-family: var(--font-arabic);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Medical card styles */
+  .medical-card {
+    @apply bg-card border border-border transition-all duration-300;
+    box-shadow: var(--shadow);
+  }
+
+  .medical-card:hover {
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-2px);
+  }
+
+  /* File type badge colors */
+  .badge-pdf {
+    @apply bg-destructive/10 text-destructive border-destructive/20;
+  }
+
+  .badge-image {
+    @apply bg-primary/10 text-primary border-primary/20;
+  }
+
+  .badge-document {
+    @apply bg-accent text-accent-foreground border-accent-foreground/20;
+  }
+
+  /* Skeleton loading animation */
+  .skeleton-pulse {
+    @apply animate-pulse bg-muted;
+  }
+
+  /* RTL text alignment helpers */
+  .text-start {
+    text-align: start;
+  }
+
+  .text-end {
+    text-align: end;
+  }
+}
