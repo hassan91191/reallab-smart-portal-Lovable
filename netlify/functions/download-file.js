@@ -12,7 +12,7 @@ exports.handler = async (event) => {
     if (!lab) return json(400, { error: 'missing_lab' });
     if (!fileId) return json(400, { error: 'missing_fileId' });
 
-    const cfg = await getLabConfigCached(lab);
+    const cfg = await getLabConfigCached(event, lab);
     if (!cfg) return json(404, { error: 'lab_not_found' });
 
     const { drive } = getClients();

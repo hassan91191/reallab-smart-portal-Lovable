@@ -36,7 +36,7 @@ exports.handler = async (event) => {
       subtitle,
     };
     try {
-      await setLabSnapshot(labKey, snapshot);
+      await setLabSnapshot(event, labKey, snapshot);
     } catch (e) {
       console.log('Snapshot update failed:', e.message || String(e));
     }

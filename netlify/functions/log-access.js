@@ -19,7 +19,7 @@ exports.handler = async (event) => {
     if (!lab) return json(400, { error: 'missing_lab' });
     if (!patientId) return json(400, { error: 'missing_patientId' });
 
-    const cfg = await getLabConfigCached(lab);
+    const cfg = await getLabConfigCached(event, lab);
     if (!cfg) return json(404, { error: 'lab_not_found' });
     if (!cfg.logSheetId) return json(500, { error: 'lab_not_ready', message: 'LogSheetId not configured for this lab' });
 

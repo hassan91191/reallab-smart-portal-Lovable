@@ -35,7 +35,7 @@ function invalidateLabConfig(labKey) {
   mem.delete(normalize(labKey));
 }
 
-async function getLabConfigCached(labKey) {
+async function getLabConfigCached(lambdaEvent, labKey) {
   labKey = normalize(labKey);
   if (!labKey) {
     const err = new Error('Missing lab');
@@ -49,7 +49,7 @@ async function getLabConfigCached(labKey) {
 
   // 2) Blobs snapshot
   try {
-    const snap = await getLabSnapshot(labKey);
+    const snap = await getLabSnapshot(lambdaEvent, labKey);
     if (snap) {
       setMem(labKey, snap);
       return snap;
@@ -65,7 +65,7 @@ async function getLabConfigCached(labKey) {
 
   // Write/update snapshot (best-effort)
   try {
-    await setLabSnapshot(labKey, cfg);
+    await setLabSnapshot(lambdaEvent, labKey, cfg);
   } catch (e) {
     console.log('Snapshot write failed:', e.message || String(e));
   }

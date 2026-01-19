@@ -9,7 +9,7 @@ exports.handler = async (event) => {
     if (!lab) return json(400, { error: 'missing_lab', message: 'Missing lab' });
     if (!patientId) return json(400, { error: 'missing_id', message: 'Missing patient id' });
 
-    const cfg = await getLabConfigCached(lab);
+    const cfg = await getLabConfigCached(event, lab);
     if (!cfg) return json(404, { error: 'lab_not_found', message: 'LabKey not found' });
     if (!cfg.driveFolderId) return json(500, { error: 'lab_not_ready', message: 'DriveFolderId not configured for this lab' });
 

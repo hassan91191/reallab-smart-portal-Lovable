@@ -7,7 +7,7 @@ exports.handler = async (event) => {
       return json(400, { error: 'missing_lab', message: 'Missing lab query parameter' });
     }
 
-    const cfg = await getLabConfigCached(lab);
+    const cfg = await getLabConfigCached(event, lab);
     if (!cfg) {
       return json(404, { error: 'lab_not_found', message: 'LabKey not found in Registry' });
     }
