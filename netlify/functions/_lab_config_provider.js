@@ -14,6 +14,26 @@ function ttlSeconds() {
   return Number.isFinite(n) && n > 0 ? n : 600;
 }
 
+// Validates that value "looks like" a Google Drive/Sheets ID (not name)
+function looksLikeId(x) {
+  x = normalize(x);
+  if (!x) return false;
+  if (x.includes(' ')) return false;
+  const low = x.toLowerCase();
+  if (low.startsWith('lab results')) return false;
+  if (low.startsWith('portal_logs_db')) return false;
+  return true;
+}
+
+function isConfigValid(cfg) {
+  if (!cfg) return false;
+  if (!normalize(cfg.labKey)) return false;
+  if (!looksLikeId(cfg.driveFolderId)) return false;
+  if (!looksLikeId(cfg.logSheetId)) return false;
+  return true;
+}
+
+// In-memory cache per warm instance
 const mem = new Map(); // LABKEY_UPPER -> { expiresAtMs, config }
 
 function getFromMem(key) {
@@ -47,14 +67,14 @@ async function getLabConfigCached(lambdaEvent, labKey) {
 
   const key = keyNorm(raw);
 
-  // 1) Memory cache
+  // 1) Memory
   const m = getFromMem(key);
   if (m) return m;
 
-  // 2) Blobs snapshot
+  // 2) Snapshot (validate before use)
   try {
     const snap = await getLabSnapshot(lambdaEvent, key);
-    if (snap) {
+    if (snap && isConfigValid(snap)) {
       setMem(key, snap);
       return snap;
     }
@@ -62,10 +82,10 @@ async function getLabConfigCached(lambdaEvent, labKey) {
     console.log('Snapshot read failed:', e.message || String(e));
   }
 
-  // 3) Sheet fallback
+  // 3) Sheet fallback (source of truth)
   const cfg = await getLabConfigFromSheet(raw);
 
-  // snapshot best-effort
+  // overwrite snapshot best-effort
   try {
     await setLabSnapshot(lambdaEvent, key, cfg);
   } catch (e) {
@@ -76,4 +96,7 @@ async function getLabConfigCached(lambdaEvent, labKey) {
   return cfg;
 }
 
-module.exports = { getLabConfigCached, invalidateLabConfig };
+module.exports = {
+  getLabConfigCached,
+  invalidateLabConfig,
+};

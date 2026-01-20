@@ -16,34 +16,23 @@ export async function fetchPatientFiles(lab: string, patientId: string): Promise
   const response = await fetch(
     `${BASE_URL}/get-files?lab=${encodeURIComponent(lab)}&id=${encodeURIComponent(patientId)}`
   );
-  
+
   if (!response.ok) {
     throw new Error('فشل في تحميل ملفات المريض');
   }
-  
-  return response.json();
-}
 
-export async function logFileAccess(
-  lab: string,
-  patientId: string,
-  fileId: string,
-  fileName: string
-): Promise<void> {
-  await fetch(`${BASE_URL}/log-access`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      lab,
-      patientId,
-      fileId,
-      fileName,
-      action: 'VIEW',
-      userAgent: navigator.userAgent,
-    }),
-  });
+  const data = await response.json();
+
+  // Netlify returns: { files: [{ id, name, ... }], ... }
+  const files = Array.isArray(data?.files) ? data.files : [];
+
+  return files.map((f: any) => ({
+    fileId: String(f.id || ''),
+    name: String(f.name || ''),
+    mimeType: f.mimeType,
+    size: f.size ? Number(f.size) : undefined,
+    modifiedTime: f.modifiedTime,
+  }));
 }
 
 export function getFileDownloadUrl(lab: string, patientId: string, fileId: string): string {

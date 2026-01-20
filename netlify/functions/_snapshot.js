@@ -1,10 +1,6 @@
 function getStoreInstance(lambdaEvent) {
   const { getStore, connectLambda } = require('@netlify/blobs');
-
-  if (lambdaEvent) {
-    try { connectLambda(lambdaEvent); } catch (_) {}
-  }
-
+  if (lambdaEvent) { try { connectLambda(lambdaEvent); } catch (_) {} }
   const storeName = process.env.REGISTRY_BLOBS_STORE || 'registry-snapshot';
   return getStore(storeName);
 }
