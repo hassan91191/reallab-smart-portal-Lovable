@@ -4,6 +4,9 @@ const { getLabSnapshot, setLabSnapshot } = require('./_snapshot');
 function normalize(s) {
   return String(s || '').trim();
 }
+function keyNorm(s) {
+  return normalize(s).toUpperCase();
+}
 
 function ttlSeconds() {
   const raw = process.env.CACHE_TTL_SECONDS || '600';
@@ -11,70 +14,66 @@ function ttlSeconds() {
   return Number.isFinite(n) && n > 0 ? n : 600;
 }
 
-// In-memory cache (per warm Lambda instance)
-const mem = new Map(); // labKey -> { expiresAtMs, config }
+const mem = new Map(); // LABKEY_UPPER -> { expiresAtMs, config }
 
-function getFromMem(labKey) {
-  const entry = mem.get(labKey);
+function getFromMem(key) {
+  const entry = mem.get(key);
   if (!entry) return null;
   if (Date.now() > entry.expiresAtMs) {
-    mem.delete(labKey);
+    mem.delete(key);
     return null;
   }
   return entry.config;
 }
 
-function setMem(labKey, config) {
-  mem.set(labKey, {
+function setMem(key, config) {
+  mem.set(key, {
     expiresAtMs: Date.now() + ttlSeconds() * 1000,
     config,
   });
 }
 
 function invalidateLabConfig(labKey) {
-  mem.delete(normalize(labKey));
+  mem.delete(keyNorm(labKey));
 }
 
 async function getLabConfigCached(lambdaEvent, labKey) {
-  labKey = normalize(labKey);
-  if (!labKey) {
+  const raw = normalize(labKey);
+  if (!raw) {
     const err = new Error('Missing lab');
     err.code = 'MISSING_LAB';
     throw err;
   }
 
+  const key = keyNorm(raw);
+
   // 1) Memory cache
-  const m = getFromMem(labKey);
+  const m = getFromMem(key);
   if (m) return m;
 
   // 2) Blobs snapshot
   try {
-    const snap = await getLabSnapshot(lambdaEvent, labKey);
+    const snap = await getLabSnapshot(lambdaEvent, key);
     if (snap) {
-      setMem(labKey, snap);
+      setMem(key, snap);
       return snap;
     }
   } catch (e) {
-    // Snapshot is an optimization; continue to sheet fallback.
-    // (We intentionally don't fail the request here.)
     console.log('Snapshot read failed:', e.message || String(e));
   }
 
-  // 3) Sheet fallback (source of truth)
-  const cfg = await getLabConfigFromSheet(labKey);
+  // 3) Sheet fallback
+  const cfg = await getLabConfigFromSheet(raw);
 
-  // Write/update snapshot (best-effort)
+  // snapshot best-effort
   try {
-    await setLabSnapshot(lambdaEvent, labKey, cfg);
+    await setLabSnapshot(lambdaEvent, key, cfg);
   } catch (e) {
     console.log('Snapshot write failed:', e.message || String(e));
   }
 
-  setMem(labKey, cfg);
+  setMem(key, cfg);
   return cfg;
 }
 
-module.exports = {
-  getLabConfigCached,
-  invalidateLabConfig,
-};
+module.exports = { getLabConfigCached, invalidateLabConfig };
