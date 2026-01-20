@@ -4,11 +4,11 @@ const BASE_URL = '/.netlify/functions';
 
 export async function fetchLabConfig(lab: string): Promise<LabConfig> {
   const response = await fetch(`${BASE_URL}/get-lab-config?lab=${encodeURIComponent(lab)}`);
-  
+
   if (!response.ok) {
     throw new Error('فشل في تحميل إعدادات المختبر');
   }
-  
+
   return response.json();
 }
 
@@ -35,6 +35,37 @@ export async function fetchPatientFiles(lab: string, patientId: string): Promise
   }));
 }
 
+export async function logFileAccess(
+  lab: string,
+  patientId: string,
+  fileId: string,
+  action: 'view' | 'download' | string = 'view',
+  userAgent?: string
+): Promise<void> {
+  const payload = {
+    lab,
+    id: patientId,
+    fileId,
+    action,
+    userAgent: userAgent || (typeof navigator !== 'undefined' ? navigator.userAgent : ''),
+    at: new Date().toISOString(),
+  };
+
+  const res = await fetch(`${BASE_URL}/log-access`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  // ما نوقعش الموقع لو اللوج فشل
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    console.warn('log-access failed', res.status, txt);
+  }
+}
+
 export function getFileDownloadUrl(lab: string, patientId: string, fileId: string): string {
-  return `${BASE_URL}/download-file?lab=${encodeURIComponent(lab)}&id=${encodeURIComponent(patientId)}&fileId=${encodeURIComponent(fileId)}`;
+  return `${BASE_URL}/download-file?lab=${encodeURIComponent(lab)}&id=${encodeURIComponent(
+    patientId
+  )}&fileId=${encodeURIComponent(fileId)}`;
 }
