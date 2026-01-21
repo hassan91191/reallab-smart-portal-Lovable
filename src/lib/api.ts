@@ -39,6 +39,7 @@ export async function logFileAccess(
   lab: string,
   patientId: string,
   fileId: string,
+  fileName: string,
   action: 'view' | 'download' | string = 'view',
   userAgent?: string
 ): Promise<void> {
@@ -46,6 +47,7 @@ export async function logFileAccess(
     lab,
     id: patientId,
     fileId,
+    fileName,
     action,
     userAgent: userAgent || (typeof navigator !== 'undefined' ? navigator.userAgent : ''),
     at: new Date().toISOString(),
@@ -68,4 +70,12 @@ export function getFileDownloadUrl(lab: string, patientId: string, fileId: strin
   return `${BASE_URL}/download-file?lab=${encodeURIComponent(lab)}&id=${encodeURIComponent(
     patientId
   )}&fileId=${encodeURIComponent(fileId)}`;
+}
+
+export function getFileForcedDownloadUrl(lab: string, patientId: string, fileId: string): string {
+  return `${getFileDownloadUrl(lab, patientId, fileId)}&download=1`;
+}
+
+export function getLogoUrl(lab: string, fileId: string): string {
+  return `${BASE_URL}/download-file?lab=${encodeURIComponent(lab)}&fileId=${encodeURIComponent(fileId)}&logo=1`;
 }

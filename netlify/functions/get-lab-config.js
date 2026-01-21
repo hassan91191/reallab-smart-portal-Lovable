@@ -1,4 +1,6 @@
 const { getLabConfigCached } = require('./_lab_config_provider');
+const { getClients } = require('./_google');
+const { resolveLogoFileId } = require('./_logo_resolver');
 
 exports.handler = async (event) => {
   try {
@@ -12,15 +14,26 @@ exports.handler = async (event) => {
       return json(404, { error: 'lab_not_found', message: 'LabKey not found in Registry' });
     }
 
-    // NOTE: Returning IDs is convenient for debugging and the desktop app,
-    // but consider removing driveFolderId/logSheetId from the client response in high-security deployments.
+    // Resolve logo dynamically from Drive folder "Lab Logo" (best-effort)
+    let resolvedLogoFileId = cfg.logoFileId;
+    try {
+      const { drive } = getClients();
+      const dynamic = await resolveLogoFileId(drive, cfg.driveFolderId);
+      if (dynamic) resolvedLogoFileId = dynamic;
+    } catch (e) {
+      console.log('Logo resolve failed:', e.message || String(e));
+    }
+
     return json(200, {
       labKey: cfg.labKey,
       driveFolderId: cfg.driveFolderId,
       logSheetId: cfg.logSheetId,
-      logoFileId: cfg.logoFileId,
-      title: cfg.title || 'بوابة النتائج الذكية',
-      subtitle: cfg.subtitle || 'نتائج التحاليل الطبية',
+      logoFileId: resolvedLogoFileId,
+      logoUrl: resolvedLogoFileId
+        ? `/.netlify/functions/download-file?lab=${encodeURIComponent(lab)}&fileId=${encodeURIComponent(resolvedLogoFileId)}&logo=1`
+        : undefined,
+      title: cfg.title || 'نتائج التحاليل الطبية',
+      subtitle: undefined,
     });
   } catch (e) {
     return json(500, { error: 'server_error', message: e.message || String(e) });

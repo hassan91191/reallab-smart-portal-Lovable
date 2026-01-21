@@ -1,5 +1,5 @@
 import { LabConfig } from '@/types/portal';
-import { FlaskConical } from 'lucide-react';
+import { DnaIcon } from '@/components/icons/DnaIcon';
 
 interface PortalHeaderProps {
   config?: LabConfig;
@@ -8,45 +8,29 @@ interface PortalHeaderProps {
 
 export function PortalHeader({ config, isLoading }: PortalHeaderProps) {
   return (
-    <header className="bg-card border-b border-border">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center gap-4">
-          {/* Logo */}
-          <div className="flex-shrink-0">
+    <header className="pt-6 px-4">
+      <div className="max-w-5xl mx-auto">
+        <div className="bg-card border border-border rounded-3xl shadow-lg p-6 sm:p-8">
+          <div className="flex flex-col items-center text-center gap-4">
+            {/* Logo (always centered) */}
             {isLoading ? (
-              <div className="w-14 h-14 rounded-lg skeleton-pulse" />
+              <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-3xl skeleton-pulse" />
             ) : config?.logoUrl ? (
               <img
                 src={config.logoUrl}
-                alt={config.title || 'Lab Logo'}
-                className="w-14 h-14 object-contain rounded-lg border border-border"
+                alt="Lab Logo"
+                className="w-40 h-40 sm:w-48 sm:h-48 object-cover rounded-3xl shadow-sm"
               />
             ) : (
-              <div className="w-14 h-14 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
-                <FlaskConical className="w-7 h-7 text-primary" />
+              <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-3xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                <DnaIcon className="w-20 h-20 text-primary" />
               </div>
             )}
-          </div>
 
-          {/* Title */}
-          <div className="flex-1 min-w-0">
-            {isLoading ? (
-              <>
-                <div className="h-6 w-48 skeleton-pulse rounded mb-2" />
-                <div className="h-4 w-32 skeleton-pulse rounded" />
-              </>
-            ) : (
-              <>
-                <h1 className="text-xl font-semibold text-foreground truncate">
-                  {config?.title || 'مختبر التحاليل'}
-                </h1>
-                {config?.subtitle && (
-                  <p className="text-sm text-muted-foreground truncate">
-                    {config.subtitle}
-                  </p>
-                )}
-              </>
-            )}
+            {/* Single title only (no duplicated subtitle) */}
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+              نتائج التحاليل الطبية
+            </h1>
           </div>
         </div>
       </div>

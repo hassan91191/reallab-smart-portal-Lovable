@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PortalState, PatientFile, LabConfig } from '@/types/portal';
-import { fetchLabConfig, fetchPatientFiles, logFileAccess, getFileDownloadUrl } from '@/lib/api';
+import { fetchLabConfig, fetchPatientFiles, logFileAccess, getFileForcedDownloadUrl } from '@/lib/api';
 import { PortalHeader } from '@/components/portal/PortalHeader';
 import { PortalFooter } from '@/components/portal/PortalFooter';
 import { PatientIdForm } from '@/components/portal/PatientIdForm';
@@ -9,6 +10,7 @@ import { LoadingSkeleton } from '@/components/portal/LoadingSkeleton';
 import { ErrorState } from '@/components/portal/ErrorState';
 
 export default function Index() {
+  const navigate = useNavigate();
   const [state, setState] = useState<PortalState>({ status: 'missing-lab' });
   const [labConfig, setLabConfig] = useState<LabConfig | undefined>();
   const [isLoadingConfig, setIsLoadingConfig] = useState(false);
@@ -110,23 +112,43 @@ export default function Index() {
     }
   };
 
-  // Handle file view/download
+  // Handle file view
   const handleViewFile = async (file: PatientFile) => {
     if (state.status !== 'loaded') return;
 
     const { lab, patientId } = state;
 
-    // Log access first (must happen on EVERY click)
+    // Navigate to in-app viewer (viewer will also log access)
+    const viewUrl = new URL(window.location.href);
+    viewUrl.pathname = '/view';
+    viewUrl.searchParams.set('lab', lab);
+    viewUrl.searchParams.set('id', patientId);
+    viewUrl.searchParams.set('fileId', file.fileId);
+    viewUrl.searchParams.set('name', file.name);
+    if (file.mimeType) viewUrl.searchParams.set('mime', file.mimeType);
+
+    navigate(`${viewUrl.pathname}${viewUrl.search}`);
+  };
+
+  // Handle direct download from card (no open)
+  const handleDownloadFile = async (file: PatientFile) => {
+    if (state.status !== 'loaded') return;
+    const { lab, patientId } = state;
+
+    // Log as if view
     try {
-      await logFileAccess(lab, patientId, file.fileId, file.name);
+      await logFileAccess(lab, patientId, file.fileId, file.name, 'view');
     } catch (error) {
       console.error('Failed to log file access:', error);
-      // Continue to open file even if logging fails
     }
 
-    // Open file in new tab
-    const downloadUrl = getFileDownloadUrl(lab, patientId, file.fileId);
-    window.open(downloadUrl, '_blank');
+    const url = getFileForcedDownloadUrl(lab, patientId, file.fileId);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
 
   // Handle retry
@@ -146,9 +168,9 @@ export default function Index() {
       <main className="flex-1 flex flex-col">
         {state.status === 'missing-lab' && (
           <ErrorState
-            title="معلمات غير صالحة"
-            message="الرابط المستخدم غير صحيح. يرجى التأكد من استخدام الرابط الصحيح للوصول إلى نتائج التحاليل."
-            showLabIcon
+            title="جار ظهور البيانات"
+            message="إذا تأخر ظهور البيانات يرجى التأكد من إستخدام الرابط الصحيح للوصول إلى النتائج"
+            variant="info"
           />
         )}
 
@@ -159,7 +181,7 @@ export default function Index() {
         {state.status === 'loading' && <LoadingSkeleton />}
 
         {state.status === 'loaded' && (
-          <FileList files={state.files} onViewFile={handleViewFile} />
+          <FileList files={state.files} onViewFile={handleViewFile} onDownloadFile={handleDownloadFile} />
         )}
 
         {state.status === 'error' && (

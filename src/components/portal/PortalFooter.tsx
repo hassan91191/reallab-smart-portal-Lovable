@@ -1,13 +1,13 @@
-import { FlaskConical } from 'lucide-react';
+import { DnaIcon } from '@/components/icons/DnaIcon';
 
 export function PortalFooter() {
   return (
-    <footer className="bg-card border-t border-border py-4 mt-auto">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-          <FlaskConical className="w-4 h-4 text-primary" />
+    <footer className="py-10 mt-auto">
+      <div className="flex items-center justify-center">
+        <div className="bg-card border border-border shadow-sm rounded-full px-6 py-3 flex items-center justify-center gap-2 text-sm text-muted-foreground">
           <span>Powered by</span>
-          <span className="font-medium text-foreground">Real Lab Smart Portal</span>
+          <span className="font-medium text-foreground">HAMA co. Smart Portal</span>
+          <DnaIcon className="w-4 h-4 text-primary" />
         </div>
       </div>
     </footer>

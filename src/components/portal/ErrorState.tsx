@@ -1,20 +1,28 @@
-import { AlertCircle, RefreshCw, FlaskConical } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { DnaIcon } from '@/components/icons/DnaIcon';
 
 interface ErrorStateProps {
   title: string;
   message: string;
   onRetry?: () => void;
-  showLabIcon?: boolean;
+  variant?: 'error' | 'info';
 }
 
-export function ErrorState({ title, message, onRetry, showLabIcon }: ErrorStateProps) {
+export function ErrorState({ title, message, onRetry, variant = 'error' }: ErrorStateProps) {
+  const isInfo = variant === 'info';
   return (
     <div className="flex-1 flex items-center justify-center p-6">
       <div className="text-center max-w-md">
-        <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-destructive/10 flex items-center justify-center border-2 border-destructive/20">
-          {showLabIcon ? (
-            <FlaskConical className="w-10 h-10 text-destructive" />
+        <div
+          className={`w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center border-2 ${
+            isInfo
+              ? 'bg-primary/10 border-primary/20'
+              : 'bg-destructive/10 border-destructive/20'
+          }`}
+        >
+          {isInfo ? (
+            <DnaIcon className="w-10 h-10 text-primary" />
           ) : (
             <AlertCircle className="w-10 h-10 text-destructive" />
           )}

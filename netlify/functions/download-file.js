@@ -1,5 +1,6 @@
 const { getClients } = require('./_google');
 const { getLabConfigCached } = require('./_lab_config_provider');
+const { resolveLogoFileId } = require('./_logo_resolver');
 
 exports.handler = async (event) => {
   try {
@@ -8,6 +9,7 @@ exports.handler = async (event) => {
     const patientId = (qp.id || '').trim();
     const fileId = (qp.fileId || '').trim();
     const isLogo = qp.logo === '1' || qp.logo === 'true';
+    const forceDownload = qp.download === '1' || qp.download === 'true';
 
     if (!lab) return json(400, { error: 'missing_lab' });
     if (!fileId) return json(400, { error: 'missing_fileId' });
@@ -18,12 +20,20 @@ exports.handler = async (event) => {
     const { drive } = getClients();
 
     if (isLogo) {
-      if (!cfg.logoFileId || cfg.logoFileId !== fileId) {
-        return json(404, { error: 'logo_not_found' });
+      // Allow dynamic logo resolved from Drive folder "Lab Logo" or fixed logoFileId from registry
+      let ok = cfg.logoFileId && cfg.logoFileId === fileId;
+      if (!ok) {
+        try {
+          const dynamic = await resolveLogoFileId(drive, cfg.driveFolderId);
+          ok = dynamic && dynamic === fileId;
+        } catch (_) {
+          ok = false;
+        }
       }
+      if (!ok) return json(404, { error: 'logo_not_found' });
       const meta = await getMeta(drive, fileId);
       const streamRes = await drive.files.get({ fileId, alt: 'media', supportsAllDrives: true }, { responseType: 'arraybuffer' });
-      return bin(200, Buffer.from(streamRes.data), meta.mimeType || 'application/octet-stream', meta.name);
+      return bin(200, Buffer.from(streamRes.data), meta.mimeType || 'application/octet-stream', meta.name, forceDownload ? 'attachment' : 'inline');
     }
 
     if (!patientId) return json(400, { error: 'missing_id' });
@@ -54,9 +64,9 @@ exports.handler = async (event) => {
     const meta = await getMeta(drive, fileId);
     const streamRes = await drive.files.get({ fileId, alt: 'media', supportsAllDrives: true }, { responseType: 'arraybuffer' });
 
-    // Inline for pdf/images, attachment otherwise
+    // Inline for pdf/images, attachment otherwise (or when forced)
     const mime = meta.mimeType || 'application/octet-stream';
-    const inline = /^application\/pdf$|^image\//.test(mime);
+    const inline = !forceDownload && /^application\/pdf$|^image\//.test(mime);
 
     return {
       statusCode: 200,
@@ -108,13 +118,13 @@ function encodeRFC5987(str) {
     .replace(/%(7C|60|5E)/g, (m) => m.toLowerCase());
 }
 
-function bin(statusCode, buf, mime, filename) {
+function bin(statusCode, buf, mime, filename, disposition = 'inline') {
   return {
     statusCode,
     isBase64Encoded: true,
     headers: {
       'content-type': mime,
-      'content-disposition': `inline; filename*=UTF-8''${encodeRFC5987(filename || 'file')}`,
+      'content-disposition': `${disposition}; filename*=UTF-8''${encodeRFC5987(filename || 'file')}`,
       'cache-control': 'no-store',
     },
     body: Buffer.from(buf).toString('base64'),

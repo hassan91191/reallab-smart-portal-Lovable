@@ -1,25 +1,18 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { PatientFile } from '@/types/portal';
 import { FileCard } from './FileCard';
-import { Input } from '@/components/ui/input';
-import { Search, FileX, Files } from 'lucide-react';
+import { FileX } from 'lucide-react';
 
 interface FileListProps {
   files: PatientFile[];
   onViewFile: (file: PatientFile) => void;
+  onDownloadFile: (file: PatientFile) => void;
 }
 
-export function FileList({ files, onViewFile }: FileListProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const sortedAndFilteredFiles = useMemo(() => {
-    // Filter by search query
-    const filtered = files.filter((file) =>
-      file.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
+export function FileList({ files, onViewFile, onDownloadFile }: FileListProps) {
+  const sortedFiles = useMemo(() => {
     // Sort: newest first (by modifiedTime), then alphabetically
-    return filtered.sort((a, b) => {
+    return [...files].sort((a, b) => {
       if (a.modifiedTime && b.modifiedTime) {
         return new Date(b.modifiedTime).getTime() - new Date(a.modifiedTime).getTime();
       }
@@ -27,7 +20,7 @@ export function FileList({ files, onViewFile }: FileListProps) {
       if (b.modifiedTime) return 1;
       return a.name.localeCompare(b.name, 'ar');
     });
-  }, [files, searchQuery]);
+  }, [files]);
 
   if (files.length === 0) {
     return (
@@ -48,48 +41,14 @@ export function FileList({ files, onViewFile }: FileListProps) {
   }
 
   return (
-    <div className="flex-1 p-4 md:p-6">
-      {/* Search and Stats Bar */}
-      <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Files className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <h2 className="font-semibold text-foreground">نتائج التحاليل</h2>
-            <p className="text-sm text-muted-foreground">
-              {files.length} {files.length === 1 ? 'ملف' : 'ملفات'}
-            </p>
-          </div>
-        </div>
-
-        {/* Search */}
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          <Input
-            type="search"
-            placeholder="البحث في الملفات..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="ps-10 pe-4 bg-card"
-          />
-        </div>
-      </div>
-
-      {/* File Grid */}
-      {sortedAndFilteredFiles.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">
-            لا توجد نتائج للبحث "{searchQuery}"
-          </p>
-        </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {sortedAndFilteredFiles.map((file) => (
-            <FileCard key={file.fileId} file={file} onView={onViewFile} />
+    <div className="flex-1 px-4 pb-10">
+      <div className="max-w-5xl mx-auto">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          {sortedFiles.map((file) => (
+            <FileCard key={file.fileId} file={file} onView={onViewFile} onDownload={onDownloadFile} />
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }
