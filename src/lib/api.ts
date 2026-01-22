@@ -94,9 +94,9 @@ export async function downloadFile(labKey: string, patientId: string, fileId: st
   return response.blob();
 }
 
-export async function logAccess(labKey: string, patientId: string, fileId: string, action: string): Promise<void> {
+export async function logAccess(labKey: string, patientId: string, fileId: string, action: string, fileName?: string): Promise<void> {
   if (USE_MOCK) {
-    console.log(`[Log Access] ${action}: lab=${labKey}, patient=${patientId}, file=${fileId}`);
+    console.log(`[Log Access] ${action}: lab=${labKey}, patient=${patientId}, file=${fileId}, name=${fileName ?? ""}`);
     return;
   }
 
@@ -110,6 +110,7 @@ export async function logAccess(labKey: string, patientId: string, fileId: strin
         lab: labKey,
         patientId,
         fileId,
+        fileName: fileName ?? "",
         action,
         timestamp: new Date().toISOString(),
       }),

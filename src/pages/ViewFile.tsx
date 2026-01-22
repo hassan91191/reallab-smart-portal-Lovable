@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { LabHeader } from '@/components/LabHeader';
 import { Footer } from '@/components/Footer';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { PdfPagesViewer } from '@/components/PdfPagesViewer';
 import { StatusScreen } from '@/components/StatusScreen';
 import { getLabConfig, getPatientFiles, downloadFile, logAccess } from '@/lib/api';
 import { prettifyFileName } from '@/lib/utils';
@@ -45,7 +46,7 @@ export default function ViewFile() {
 
         // Safety: if opened directly
         if (f) {
-          try { await logAccess(labKey, patientId, f.id, 'VIEW'); } catch {}
+          try { await logAccess(labKey, patientId, f.id, \'VIEW\', f.name); } catch {}
         }
       } catch {
         if (!cancelled) setState('error');
@@ -61,7 +62,7 @@ export default function ViewFile() {
 
   const handleDownload = async () => {
     if (!file) return;
-    try { await logAccess(labKey, patientId, file.id, 'DOWNLOAD'); } catch {}
+    try { await logAccess(labKey, patientId, file.id, \'DOWNLOAD\', file.name); } catch {}
     const blob = await downloadFile(labKey, patientId, file.id);
     saveAs(blob, file.name || 'result');
   };
@@ -70,7 +71,13 @@ export default function ViewFile() {
     return <StatusScreen type="missing-lab" title="جار ظهور البيانات" subtitle="الرابط المستخدم غير صحيح. يرجى التأكد من استخدام الرابط الصحيح للوصول إلى النتائج." onRetry={handleBack} />;
   }
 
-  if (state === 'loading') return <LoadingSpinner />;
+  if (state === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
   if (state === 'error') return <StatusScreen type="error" onRetry={() => window.location.reload()} />;
 
   if (!file) {
@@ -115,12 +122,7 @@ export default function ViewFile() {
                 style={{ touchAction: 'pan-x pan-y pinch-zoom' }}
               />
             ) : isPdf(file) ? (
-              <iframe
-                src={file.viewUrl || file.downloadUrl || ''}
-                title={file.name}
-                className="w-full h-[85vh]"
-                style={{ border: 0 }}
-              />
+              <PdfPagesViewer url={file.viewUrl || file.downloadUrl || ''} />
             ) : (
               <div className="p-6 text-sm text-muted-foreground">
                 لا يمكن عرض هذا النوع من الملفات داخل الصفحة.

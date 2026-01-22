@@ -51,9 +51,9 @@ export function ResultsPage({ labConfig, patientId, files, isLoading = false }: 
     if (!labKey || !patientId) return;
 
     // Log once for the "bulk" action + per-file view
-    try { await logAccess(labKey, patientId, 'ALL', 'VIEW_ALL'); } catch {}
+    try { await logAccess(labKey, patientId, 'ALL', 'VIEW_ALL', ''); } catch {}
     try {
-      await Promise.allSettled(files.map(f => logAccess(labKey, patientId, f.id, 'VIEW')));
+      await Promise.allSettled(files.map(f => logAccess(labKey, patientId, f.id, \'VIEW\', f.name)));
     } catch {}
 
     navigateToAll();
@@ -61,13 +61,13 @@ export function ResultsPage({ labConfig, patientId, files, isLoading = false }: 
 
   const handleViewFile = useCallback(async (file: ResultFile) => {
     if (!labKey || !patientId) return;
-    try { await logAccess(labKey, patientId, file.id, 'VIEW'); } catch {}
+    try { await logAccess(labKey, patientId, file.id, \'VIEW\', file.name); } catch {}
     navigateToFile(file.id);
   }, [labKey, patientId, navigateToFile]);
 
   const handleDownloadOne = useCallback(async (file: ResultFile) => {
     if (!labKey || !patientId) return;
-    try { await logAccess(labKey, patientId, file.id, 'DOWNLOAD'); } catch {}
+    try { await logAccess(labKey, patientId, file.id, \'DOWNLOAD\', file.name); } catch {}
     const blob = await downloadFile(labKey, patientId, file.id);
     saveAs(blob, file.name || 'result');
   }, [labKey, patientId]);
@@ -83,12 +83,12 @@ export function ResultsPage({ labConfig, patientId, files, isLoading = false }: 
       isError: false,
     });
 
-    try { await logAccess(labKey, patientId, 'ALL', 'DOWNLOAD_ALL'); } catch {}
+    try { await logAccess(labKey, patientId, 'ALL', 'DOWNLOAD_ALL', ''); } catch {}
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       try {
-        try { await logAccess(labKey, patientId, file.id, 'DOWNLOAD'); } catch {}
+        try { await logAccess(labKey, patientId, file.id, \'DOWNLOAD\', file.name); } catch {}
         const blob = await downloadFile(labKey, patientId, file.id);
         saveAs(blob, file.name || `result_${i + 1}`);
       } catch (e) {
@@ -139,7 +139,7 @@ export function ResultsPage({ labConfig, patientId, files, isLoading = false }: 
             onClick={handleViewAll}
             disabled={files.length === 0}
             variant="outline"
-            className="h-12 px-8 rounded-2xl border-primary/30 bg-primary/5 hover:bg-primary/10 gap-2"
+            className="h-12 px-8 rounded-2xl border-primary/30 bg-primary/5 hover:bg-primary/10 gap-2 transition-all active:scale-[0.98]"
           >
             <Eye className="w-5 h-5" />
             عرض جميع النتائج
@@ -148,7 +148,7 @@ export function ResultsPage({ labConfig, patientId, files, isLoading = false }: 
           <Button
             onClick={handleDownloadAll}
             disabled={files.length === 0 || downloadState.show}
-            className="h-12 px-8 rounded-2xl bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity disabled:opacity-50 shadow-glow gap-2"
+            className="h-12 px-8 rounded-2xl bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity disabled:opacity-50 shadow-glow gap-2 transition-all active:scale-[0.98]"
           >
             <Download className="w-5 h-5" />
             تحميل جميع النتائج

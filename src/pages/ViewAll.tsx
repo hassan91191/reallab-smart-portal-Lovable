@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { LabHeader } from '@/components/LabHeader';
 import { Footer } from '@/components/Footer';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { PdfPagesViewer } from '@/components/PdfPagesViewer';
 import { StatusScreen } from '@/components/StatusScreen';
 import { getLabConfig, getPatientFiles, downloadFile, logAccess } from '@/lib/api';
 import { prettifyFileName } from '@/lib/utils';
@@ -43,7 +44,7 @@ export default function ViewAll() {
 
         // Safety: if someone opens this page directly, still log a single "VIEW_ALL"
         try {
-          await logAccess(labKey, patientId, 'ALL', 'VIEW_ALL');
+          await logAccess(labKey, patientId, 'ALL', 'VIEW_ALL', '');
         } catch {}
       } catch (e) {
         if (!cancelled) setState('error');
@@ -59,7 +60,7 @@ export default function ViewAll() {
 
   const handleDownload = async (file: ResultFile) => {
     try {
-      await logAccess(labKey, patientId, file.id, 'DOWNLOAD');
+      await logAccess(labKey, patientId, file.id, \'DOWNLOAD\', file.name);
     } catch {}
     const blob = await downloadFile(labKey, patientId, file.id);
     saveAs(blob, file.name || 'result');
@@ -70,7 +71,11 @@ export default function ViewAll() {
   }
 
   if (state === 'loading') {
-    return <LoadingSpinner />;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
   }
 
   if (state === 'error') {
@@ -133,12 +138,7 @@ export default function ViewAll() {
                     loading="lazy"
                   />
                 ) : isPdf(file) ? (
-                  <iframe
-                    src={file.viewUrl || file.downloadUrl || ''}
-                    title={file.name}
-                    className="w-full h-[80vh]"
-                    style={{ border: 0 }}
-                  />
+                  <PdfPagesViewer url={file.viewUrl || file.downloadUrl || ''} />
                 ) : (
                   <div className="p-6 text-sm text-muted-foreground">
                     لا يمكن عرض هذا النوع من الملفات داخل الصفحة.
