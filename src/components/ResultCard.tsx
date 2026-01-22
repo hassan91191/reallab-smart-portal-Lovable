@@ -3,6 +3,7 @@ import { FileText, Image, Eye, Download, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ResultFile } from '@/types/lab';
 import { isImage, isPdf } from '@/types/lab';
+import { prettifyFileName } from '@/lib/utils';
 
 interface ResultCardProps {
   file: ResultFile;
@@ -42,8 +43,8 @@ export function ResultCard({ file, index, onView, onDownload }: ResultCardProps)
 
         {/* Content */}
         <div className="flex-1 min-w-0 space-y-1">
-          <h3 className="font-semibold text-foreground truncate">
-            {file.name}
+          <h3 className="font-semibold text-foreground break-words">
+            {prettifyFileName(file.name)}
           </h3>
           {formattedDate && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

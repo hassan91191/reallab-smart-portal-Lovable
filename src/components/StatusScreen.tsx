@@ -6,87 +6,76 @@ import { Footer } from '@/components/Footer';
 interface StatusScreenProps {
   type: 'missing-lab' | 'error';
   onRetry?: () => void;
+  title?: string;
+  subtitle?: string;
 }
 
-export function StatusScreen({ type, onRetry }: StatusScreenProps) {
+export function StatusScreen({ type, onRetry, title: titleOverride, subtitle: subtitleOverride }: StatusScreenProps) {
   const content = {
     'missing-lab': {
       icon: WifiOff,
       title: 'جار ظهور البيانات',
       subtitle: 'إذا تأخر ظهور البيانات يرجى التأكد من استخدام الرابط الصحيح للوصول إلى النتائج',
-      showRetry: false,
+      buttonText: 'إعادة المحاولة',
+      showRetry: true,
     },
     'error': {
       icon: AlertCircle,
       title: 'حدث خطأ',
-      subtitle: 'يرجى المحاولة مرة أخرى أو التواصل مع المختبر',
+      subtitle: 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.',
+      buttonText: 'إعادة المحاولة',
       showRetry: true,
     },
-  };
+  } as const;
 
-  const { icon: Icon, title, subtitle, showRetry } = content[type];
+  const { icon: Icon, title, subtitle, buttonText, showRetry } = content[type];
 
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="flex-1 flex items-center justify-center p-6">
-        <motion.div 
-          className="glass-card rounded-3xl p-8 md:p-12 max-w-md w-full text-center space-y-6"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          {/* Icon with glow */}
-          <motion.div 
-            className="relative mx-auto w-24 h-24 flex items-center justify-center"
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring" }}
-          >
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/20 to-accent/20 blur-xl" />
-            <div className="relative glass-card w-20 h-20 rounded-2xl flex items-center justify-center">
-              <Icon className="w-10 h-10 text-primary" />
-            </div>
-          </motion.div>
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-background/95 to-background pointer-events-none" />
 
-          {/* Text content */}
-          <motion.div 
-            className="space-y-3"
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 text-center">
+        <motion.div
+          className="w-24 h-24 rounded-2xl glass-card glow-ring flex items-center justify-center mb-8"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.4 }}
+        >
+          <Icon className="w-10 h-10 text-primary" />
+        </motion.div>
+
+        <motion.div
+          className="max-w-md space-y-3"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.45 }}
+        >
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+            {titleOverride || title}
+          </h1>
+          <p className="text-muted-foreground leading-relaxed">
+            {subtitleOverride || subtitle}
+          </p>
+        </motion.div>
+
+        {showRetry && onRetry && (
+          <motion.div
+            className="mt-8"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.2, duration: 0.45 }}
           >
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-              {title}
-            </h1>
-            <p className="text-muted-foreground leading-relaxed">
-              {subtitle}
-            </p>
-          </motion.div>
-
-          {/* Retry button */}
-          {showRetry && onRetry && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
+            <Button
+              onClick={onRetry}
+              className="h-12 px-8 rounded-2xl bg-gradient-to-r from-primary to-accent hover:opacity-90 gap-2"
             >
-              <Button 
-                onClick={onRetry}
-                variant="outline"
-                className="gap-2 border-primary/30 hover:bg-primary/10 hover:border-primary/50"
-              >
-                <RefreshCw className="w-4 h-4" />
-                إعادة المحاولة
-              </Button>
-            </motion.div>
-          )}
-
-          {/* Decorative elements */}
-          <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl">
-            <div className="absolute -top-1/2 -right-1/2 w-full h-full bg-gradient-to-br from-primary/5 to-transparent rotate-12" />
-          </div>
-        </motion.div>
+              <RefreshCw className="w-4 h-4" />
+              {buttonText}
+            </Button>
+          </motion.div>
+        )}
       </div>
+
       <Footer />
     </div>
   );

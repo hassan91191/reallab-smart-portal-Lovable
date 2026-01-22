@@ -107,6 +107,8 @@
   }
 
   .glow-ring::before {
+    pointer-events: none;
+    z-index: 0;
     content: '';
     position: absolute;
     inset: -2px;
@@ -211,3 +213,9 @@
 [dir="rtl"] .swipe-hint {
   animation-direction: reverse;
 }
+
+
+  .glow-ring > * {
+    position: relative;
+    z-index: 1;
+  }
