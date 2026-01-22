@@ -46,7 +46,7 @@ export default function ViewFile() {
 
         // Safety: if opened directly
         if (f) {
-          try { await logAccess(labKey, patientId, f.id, \'VIEW\', f.name); } catch {}
+          try { await logAccess(labKey, patientId, f.id, 'VIEW', f.name); } catch {}
         }
       } catch {
         if (!cancelled) setState('error');
@@ -62,7 +62,7 @@ export default function ViewFile() {
 
   const handleDownload = async () => {
     if (!file) return;
-    try { await logAccess(labKey, patientId, file.id, \'DOWNLOAD\', file.name); } catch {}
+    try { await logAccess(labKey, patientId, file.id, 'DOWNLOAD', file.name); } catch {}
     const blob = await downloadFile(labKey, patientId, file.id);
     saveAs(blob, file.name || 'result');
   };
