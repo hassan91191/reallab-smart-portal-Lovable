@@ -1,89 +1,91 @@
-# Real Lab Smart Portal (Multi-Labs via LabKey) - Enterprise Ready
+# Welcome to your Lovable project
 
-This repo is **Netlify-ready** (static site + Netlify Functions) and supports **multiple labs** on the same portal via:
+## Project info
 
-`/?lab=<LabKey>&id=<PatientID>`
+**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
 
-## Service Account (موحَّد لكل المعامل)
+## How can I edit this code?
 
-Service Account Email (ثابت في الكود / Env):
+There are several ways of editing your application.
 
-`netlify-connect@crested-photon-483015-i9.iam.gserviceaccount.com`
+**Use Lovable**
 
-> البرنامج (C#) بيعمل Share تلقائي لـ Drive folder + Logs sheet مع ال Service Account.
+Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
 
----
+Changes made via Lovable will be committed automatically to this repo.
 
-## Registry (موحَّد)
+**Use your preferred IDE**
 
-**Registry Sheet واحدة مركزية** تحتوي على إعدادات كل معمل.
+If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
-- Spreadsheet: أي Google Sheet (ID ثابت في Env)
-- Tab name: **`Labs`**
+The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
-### أعمدة Tab `Labs`
-| Col | Name |
-|-----|------|
-| A | LabKey |
-| B | DriveFolderId |
-| C | LogSheetId |
-| D | LogoFileId |
-| E | Title (optional) |
-| F | Subtitle (optional) |
+Follow these steps:
 
----
+```sh
+# Step 1: Clone the repository using the project's Git URL.
+git clone <YOUR_GIT_URL>
 
-## Per-Lab (لكل معمل على حدة)
-- Google Drive root folder: `Lab Results - <LabKey>`
-- Logs Sheet: `Portal_Logs_DB - <LabKey>` (SpreadsheetId مختلف لكل معمل) + Tab اسمه:
-  - **`Patient Lab Log`**
-- Logo file (optional) داخل `PortalAssets/` تحت فولدر المعمل
+# Step 2: Navigate to the project directory.
+cd <YOUR_PROJECT_NAME>
 
----
+# Step 3: Install the necessary dependencies.
+npm i
 
-## Enterprise-Ready Optimization
+# Step 4: Start the development server with auto-reloading and an instant preview.
+npm run dev
+```
 
-### 1) Cache TTL (10 دقائق)
-- In-memory cache داخل الـ Function instance
-- HTTP cache لــ endpoint `/.netlify/functions/get-lab-config`
+**Edit a file directly in GitHub**
 
-Set via env:
-- `CACHE_TTL_SECONDS=600`
+- Navigate to the desired file(s).
+- Click the "Edit" button (pencil icon) at the top right of the file view.
+- Make your changes and commit the changes.
 
-### 2) Snapshot JSON (Netlify Blobs)
-عند `register-lab` بنعمل Snapshot JSON لكل LabKey داخل Netlify Blobs:
-- Key: `labs/<LabKey>.json`
+**Use GitHub Codespaces**
 
-وده بيقلل الضغط على Google Sheets لأن أغلب القراءات بتبقى من Blobs + Memory cache.
+- Navigate to the main page of your repository.
+- Click on the "Code" button (green button) near the top right.
+- Select the "Codespaces" tab.
+- Click on "New codespace" to launch a new Codespace environment.
+- Edit files directly within the Codespace and commit and push your changes once you're done.
 
-Optional env:
-- `REGISTRY_BLOBS_STORE=registry-snapshot`
+## What technologies are used for this project?
 
----
+This project is built with:
 
-## Required Netlify Environment Variables
+- Vite
+- TypeScript
+- React
+- shadcn-ui
+- Tailwind CSS
 
-### Google Service Account
+## How can I deploy this project?
+
+Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+
+## Can I connect a custom domain to my Lovable project?
+
+Yes, you can!
+
+To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+
+Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+
+
+## Netlify Functions (Backend)
+This project includes Netlify Functions under `netlify/functions`.
+
+### Required environment variables (set in Netlify Site settings)
 - `GOOGLE_SERVICE_ACCOUNT_JSON`
-  - JSON كامل، أو Base64 بصيغة: `base64:<...>`
+- `REGISTRY_SHEET_ID`
+- `REGISTRY_SHEET_TAB` (optional)
+- `REGISTRY_ADMIN_TOKEN` (for register-lab)
+- `CACHE_TTL_SECONDS` (optional)
+- `REGISTRY_BLOBS_STORE` (optional)
 
-### Registry Sheet
-- `REGISTRY_SHEET_ID` (SpreadsheetId بتاع الـ Registry Sheet الموحد)
-- `REGISTRY_SHEET_TAB` = `Labs`
-
-### Logs tab name
-- `LAB_LOG_TAB_NAME` = `Patient Lab Log`
-
-### Admin token (للـ register-lab)
-- `REGISTRY_ADMIN_TOKEN` (أي قيمة سرية)
-
----
-
-## Endpoints
-
-- `/.netlify/functions/get-lab-config?lab=<LabKey>`
-- `/.netlify/functions/get-files?lab=<LabKey>&id=<PatientID>`
-- `/.netlify/functions/download-file?lab=<LabKey>&id=<PatientID>&fileId=<FileId>`
-- `/.netlify/functions/log-access` (POST)
-- `/.netlify/functions/register-lab` (POST + header `x-admin-token`)
+### Dev
+- `npm install`
+- `npm run dev` (frontend)
+- `npm run dev:netlify` (frontend + functions)
 

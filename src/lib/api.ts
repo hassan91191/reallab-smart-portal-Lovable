@@ -1,81 +1,128 @@
-import { LabConfig, PatientFile } from '@/types/portal';
+import type { LabConfig, ResultFile } from '@/types/lab';
+import { mockLabConfig, mockFiles } from './mockData';
 
-const BASE_URL = '/.netlify/functions';
+const API_BASE = import.meta.env.VITE_API_BASE || '/.netlify/functions';
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'; // default false
 
-export async function fetchLabConfig(lab: string): Promise<LabConfig> {
-  const response = await fetch(`${BASE_URL}/get-lab-config?lab=${encodeURIComponent(lab)}`);
-
-  if (!response.ok) {
-    throw new Error('فشل في تحميل إعدادات المختبر');
+export async function getLabConfig(labKey: string): Promise<LabConfig> {
+  if (USE_MOCK) {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    if (labKey) {
+      return { ...mockLabConfig, labKey };
+    }
+    throw new Error('Invalid lab key');
   }
 
-  return response.json();
-}
-
-export async function fetchPatientFiles(lab: string, patientId: string): Promise<PatientFile[]> {
-  const response = await fetch(
-    `${BASE_URL}/get-files?lab=${encodeURIComponent(lab)}&id=${encodeURIComponent(patientId)}`
-  );
-
+  const response = await fetch(`${API_BASE}/get-lab-config?lab=${encodeURIComponent(labKey)}`);
+  
   if (!response.ok) {
-    throw new Error('فشل في تحميل ملفات المريض');
+    throw new Error('فشل في تحميل بيانات المختبر');
   }
-
+  
   const data = await response.json();
-
-  // Netlify returns: { files: [{ id, name, ... }], ... }
-  const files = Array.isArray(data?.files) ? data.files : [];
-
-  return files.map((f: any) => ({
-    fileId: String(f.id || ''),
-    name: String(f.name || ''),
-    mimeType: f.mimeType,
-    size: f.size ? Number(f.size) : undefined,
-    modifiedTime: f.modifiedTime,
-  }));
+  return {
+    ...data,
+    labKey: data.labKey ?? labKey,
+    labName: data.labName ?? data.title ?? data.labName ?? 'نتائج التحاليل الطبية',
+  };
 }
 
-export async function logFileAccess(
-  lab: string,
-  patientId: string,
-  fileId: string,
-  fileName: string,
-  action: 'view' | 'download' | string = 'view',
-  userAgent?: string
-): Promise<void> {
-  const payload = {
-    lab,
-    id: patientId,
-    fileId,
-    fileName,
-    action,
-    userAgent: userAgent || (typeof navigator !== 'undefined' ? navigator.userAgent : ''),
-    at: new Date().toISOString(),
-  };
+export async function getPatientFiles(labKey: string, patientId: string): Promise<ResultFile[]> {
+  if (USE_MOCK) {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+    if (labKey && patientId) {
+      return mockFiles;
+    }
+    throw new Error('Invalid parameters');
+  }
 
-  const res = await fetch(`${BASE_URL}/log-access`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
+  const response = await fetch(
+    `${API_BASE}/get-files?lab=${encodeURIComponent(labKey)}&id=${encodeURIComponent(patientId)}`
+  );
+  
+  if (!response.ok) {
+    throw new Error('فشل في تحميل النتائج');
+  }
+  
+  const data = await response.json();
+  return data.files || data;
+}
 
-  // ما نوقعش الموقع لو اللوج فشل
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '');
-    console.warn('log-access failed', res.status, txt);
+export async function downloadFile(labKey: string, patientId: string, fileId: string): Promise<Blob> {
+  if (USE_MOCK) {
+    // Find the file and fetch it
+    const file = mockFiles.find(f => f.id === fileId);
+    if (file) {
+      const response = await fetch(file.downloadUrl);
+      return response.blob();
+    }
+    throw new Error('File not found');
+  }
+
+  const response = await fetch(
+    `${API_BASE}/download-file?lab=${encodeURIComponent(labKey)}&id=${encodeURIComponent(patientId)}&fileId=${encodeURIComponent(fileId)}`
+  );
+  
+  if (!response.ok) {
+    throw new Error('فشل في تحميل الملف');
+  }
+  
+  return response.blob();
+}
+
+export async function logAccess(labKey: string, patientId: string, fileId: string, action: 'view' | 'download'): Promise<void> {
+  if (USE_MOCK) {
+    console.log(`[Log Access] ${action}: lab=${labKey}, patient=${patientId}, file=${fileId}`);
+    return;
+  }
+
+  try {
+    await fetch(`${API_BASE}/log-access`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        lab: labKey,
+        patientId,
+        fileId,
+        action,
+        timestamp: new Date().toISOString(),
+      }),
+    });
+  } catch (error) {
+    console.error('Failed to log access:', error);
   }
 }
 
-export function getFileDownloadUrl(lab: string, patientId: string, fileId: string): string {
-  return `${BASE_URL}/download-file?lab=${encodeURIComponent(lab)}&id=${encodeURIComponent(
-    patientId
-  )}&fileId=${encodeURIComponent(fileId)}`;
+// Logo caching utilities
+const LOGO_CACHE_PREFIX = 'lab_logo_cache_';
+
+export function getCachedLogo(labKey: string): string | null {
+  try {
+    const cached = localStorage.getItem(`${LOGO_CACHE_PREFIX}${labKey}`);
+    if (cached) {
+      const { url, timestamp } = JSON.parse(cached);
+      // Cache for 24 hours
+      if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
+        return url;
+      }
+    }
+  } catch {
+    // Ignore cache errors
+  }
+  return null;
 }
 
-export function getFileForcedDownloadUrl(lab: string, patientId: string, fileId: string): string {
-  return `${getFileDownloadUrl(lab, patientId, fileId)}&download=1`;
-}
-
-export function getLogoUrl(lab: string, fileId: string): string {
-  return `${BASE_URL}/download-file?lab=${encodeURIComponent(lab)}&fileId=${encodeURIComponent(fileId)}&logo=1`;
+export function cacheLogo(labKey: string, url: string): void {
+  try {
+    localStorage.setItem(
+      `${LOGO_CACHE_PREFIX}${labKey}`,
+      JSON.stringify({ url, timestamp: Date.now() })
+    );
+  } catch {
+    // Ignore cache errors
+  }
 }
