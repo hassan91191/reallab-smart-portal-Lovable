@@ -2,6 +2,9 @@ const { getClients } = require('./_google');
 const { getLabConfigCached } = require('./_lab_config_provider');
 const { resolveLogoFileId } = require('./_logo_resolver');
 
+// Marker file prefix created by Whats Sender to indicate portal access should be blocked
+const BLOCK_MARKER_PREFIX = '__PORTAL_BLOCKED__';
+
 exports.handler = async (event) => {
   try {
     const qp = event.queryStringParameters || {};
@@ -58,6 +61,19 @@ exports.handler = async (event) => {
     const patientFolder = folderRes.data.files?.[0];
     if (!patientFolder) return json(404, { error: 'patient_folder_not_found' });
 
+    // Gate: if a Whats Sender block marker exists inside patient folder, block ALL downloads/views.
+    const marker = await findBlockMarkerInFolder(drive, patientFolder.id);
+    if (marker) {
+      const amount = extractAmountFromMarkerName(marker.name);
+      return json(403, {
+        error: 'blocked',
+        blocked: true,
+        amount,
+        markerFileId: marker.id,
+        markerFileName: marker.name,
+      });
+    }
+
     const ok = await isDescendantOf(drive, fileId, patientFolder.id);
     if (!ok) return json(403, { error: 'not_allowed' });
 
@@ -82,6 +98,35 @@ exports.handler = async (event) => {
     return json(500, { error: 'server_error', message: e.message || String(e) });
   }
 };
+
+
+async function findBlockMarkerInFolder(drive, folderId) {
+  const q = [
+    `'${folderId}' in parents`,
+    `name contains '${BLOCK_MARKER_PREFIX}'`,
+    `trashed = false`,
+    `mimeType != 'application/vnd.google-apps.folder'`,
+  ].join(' and ');
+
+  const res = await drive.files.list({
+    q,
+    fields: 'files(id,name)',
+    pageSize: 10,
+    includeItemsFromAllDrives: true,
+    supportsAllDrives: true,
+  });
+
+  const files = res.data.files || [];
+  return files.find(f => (f.name || '').startsWith(BLOCK_MARKER_PREFIX) && /\.txt$/i.test(f.name || '')) || null;
+}
+
+function extractAmountFromMarkerName(name) {
+  const n = String(name || '');
+  const after = n.startsWith(BLOCK_MARKER_PREFIX) ? n.slice(BLOCK_MARKER_PREFIX.length) : n;
+  const m = after.match(/(\d+)/);
+  return m ? Number(m[1]) : 0;
+}
+
 
 async function getMeta(drive, fileId) {
   const res = await drive.files.get({

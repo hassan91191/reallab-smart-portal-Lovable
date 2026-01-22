@@ -1,6 +1,9 @@
 const { getClients } = require('./_google');
 const { getLabConfigCached } = require('./_lab_config_provider');
 
+// Marker file prefix created by Whats Sender to indicate portal access should be blocked
+const BLOCK_MARKER_PREFIX = '__PORTAL_BLOCKED__';
+
 exports.handler = async (event) => {
   try {
     const lab = (event.queryStringParameters?.lab || '').trim();
@@ -60,6 +63,27 @@ exports.handler = async (event) => {
       modifiedTime: f.modifiedTime,
     }));
 
+
+    // 3) Gate: if a Whats Sender block marker exists, do NOT return files.
+    const marker = files.find(f => {
+      const n = (f.name || '');
+      return n.startsWith(BLOCK_MARKER_PREFIX) && /\.txt$/i.test(n);
+    });
+
+    if (marker) {
+      const amount = extractAmountFromMarkerName(marker.name);
+      return json(200, {
+        labKey: cfg.labKey,
+        patientId,
+        folderId: patientFolder.id,
+        blocked: true,
+        amount,
+        markerFileId: marker.id,
+        markerFileName: marker.name,
+        files: [],
+      });
+    }
+
     return json(200, {
       labKey: cfg.labKey,
       patientId,
@@ -70,6 +94,17 @@ exports.handler = async (event) => {
     return json(500, { error: 'server_error', message: e.message || String(e) });
   }
 };
+
+
+function extractAmountFromMarkerName(name) {
+  // Expected: __PORTAL_BLOCKED__150.txt (amount only, no currency)
+  // Be tolerant: pick the first group of digits after the prefix.
+  const n = String(name || '');
+  const after = n.startsWith(BLOCK_MARKER_PREFIX) ? n.slice(BLOCK_MARKER_PREFIX.length) : n;
+  const m = after.match(/(\d+)/);
+  return m ? Number(m[1]) : 0;
+}
+
 
 function escapeQ(s) {
   // Escape single quotes for Drive query

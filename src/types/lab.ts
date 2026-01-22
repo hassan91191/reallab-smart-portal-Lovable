@@ -30,6 +30,14 @@ export interface ResultFile {
   downloadUrl?: string;
 }
 
+export interface PatientFilesResponse {
+  files: ResultFile[];
+  blocked?: boolean;
+  amount?: number;
+  markerFileId?: string;
+  markerFileName?: string;
+}
+
 export type FileType = 'image' | 'pdf' | 'unknown';
 
 export function getFileType(mimeType: string): FileType {

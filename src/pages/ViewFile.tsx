@@ -8,13 +8,14 @@ import { Footer } from '@/components/Footer';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { PdfPagesViewer } from '@/components/PdfPagesViewer';
 import { StatusScreen } from '@/components/StatusScreen';
+import { BlockedPage } from '@/components/BlockedPage';
 import { getLabConfig, getPatientFiles, downloadFile, logAccess } from '@/lib/api';
 import { prettifyFileName } from '@/lib/utils';
 import type { LabConfig, ResultFile } from '@/types/lab';
 import { isImage, isPdf } from '@/types/lab';
 import { saveAs } from 'file-saver';
 
-type State = 'loading' | 'ready' | 'error' | 'missing';
+type State = 'loading' | 'ready' | 'blocked' | 'error' | 'missing';
 
 export default function ViewFile() {
   const [searchParams] = useSearchParams();
@@ -25,6 +26,7 @@ export default function ViewFile() {
 
   const [labConfig, setLabConfig] = useState<LabConfig | null>(null);
   const [file, setFile] = useState<ResultFile | null>(null);
+  const [blockedAmount, setBlockedAmount] = useState<number>(0);
   const [state, setState] = useState<State>('loading');
 
   useEffect(() => {
@@ -37,7 +39,22 @@ export default function ViewFile() {
       try {
         setState('loading');
         const cfg = await getLabConfig(labKey);
-        const fs = await getPatientFiles(labKey, patientId);
+        const resp = await getPatientFiles(labKey, patientId);
+        if (resp.blocked) {
+          setLabConfig(cfg);
+          setFile(null);
+          setBlockedAmount(Number(resp.amount || 0));
+          setState('blocked');
+          try {
+            const k = `blocked_logged_${labKey}_${patientId}`;
+            if (!sessionStorage.getItem(k)) {
+              sessionStorage.setItem(k, '1');
+              await logAccess(labKey, patientId, resp.markerFileId || 'BLOCKED', 'BLOCKED', resp.markerFileName || '');
+            }
+          } catch {}
+          return;
+        }
+        const fs = resp.files;
         const f = fs.find(x => x.id === fileId) || null;
         if (cancelled) return;
         setLabConfig(cfg);
@@ -79,6 +96,10 @@ export default function ViewFile() {
     );
   }
   if (state === 'error') return <StatusScreen type="error" onRetry={() => window.location.reload()} />;
+
+  if (state === 'blocked') {
+    return <BlockedPage labConfig={labConfig} amount={blockedAmount} />;
+  }
 
   if (!file) {
     return <StatusScreen type="error" title="الملف غير موجود" subtitle="تعذر العثور على هذه النتيجة." onRetry={handleBack} />;

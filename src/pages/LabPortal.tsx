@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import { getLabConfig, getPatientFiles } from '@/lib/api';
+import { getLabConfig, getPatientFiles, logAccess } from '@/lib/api';
 import type { LabConfig, ResultFile } from '@/types/lab';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { StatusScreen } from '@/components/StatusScreen';
 import { PatientIdInput } from '@/components/PatientIdInput';
 import { ResultsPage } from '@/components/ResultsPage';
+import { BlockedPage } from '@/components/BlockedPage';
 
-type PageState = 'loading' | 'missing-lab' | 'missing-id' | 'loading-results' | 'results' | 'error';
+type PageState = 'loading' | 'missing-lab' | 'missing-id' | 'loading-results' | 'results' | 'blocked' | 'error';
 
 const LabPortal = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -18,6 +19,9 @@ const LabPortal = () => {
   const [pageState, setPageState] = useState<PageState>('loading');
   const [labConfig, setLabConfig] = useState<LabConfig | null>(null);
   const [files, setFiles] = useState<ResultFile[]>([]);
+  const [blockedAmount, setBlockedAmount] = useState<number>(0);
+  const [blockedMarkerName, setBlockedMarkerName] = useState<string>('');
+  const [blockedMarkerId, setBlockedMarkerId] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
   // Load lab config
@@ -53,8 +57,26 @@ const LabPortal = () => {
 
     const loadFiles = async () => {
       try {
-        const patientFiles = await getPatientFiles(labKey, patientId);
-        setFiles(patientFiles);
+        const resp = await getPatientFiles(labKey, patientId);
+        if (resp.blocked) {
+          setFiles([]);
+          setBlockedAmount(Number(resp.amount || 0));
+          setBlockedMarkerName(resp.markerFileName || '');
+          setBlockedMarkerId(resp.markerFileId || '');
+          setPageState('blocked');
+
+          // Log BLOCKED once per visit
+          try {
+            const k = `blocked_logged_${labKey}_${patientId}`;
+            if (!sessionStorage.getItem(k)) {
+              sessionStorage.setItem(k, '1');
+              await logAccess(labKey, patientId, resp.markerFileId || 'BLOCKED', 'BLOCKED', resp.markerFileName || '');
+            }
+          } catch {}
+          return;
+        }
+
+        setFiles(resp.files);
         setPageState('results');
       } catch (err) {
         console.error('Failed to load files:', err);
@@ -118,6 +140,12 @@ const LabPortal = () => {
           patientId={patientId} 
           files={files}
         />
+      )}
+
+
+
+      {pageState === 'blocked' && labConfig && (
+        <BlockedPage labConfig={labConfig} amount={blockedAmount} />
       )}
 
       {pageState === 'error' && (

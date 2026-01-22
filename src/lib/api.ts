@@ -1,4 +1,4 @@
-import type { LabConfig, ResultFile } from '@/types/lab';
+import type { LabConfig, ResultFile, PatientFilesResponse } from '@/types/lab';
 import { mockLabConfig, mockFiles } from './mockData';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/.netlify/functions';
@@ -28,12 +28,12 @@ export async function getLabConfig(labKey: string): Promise<LabConfig> {
   };
 }
 
-export async function getPatientFiles(labKey: string, patientId: string): Promise<ResultFile[]> {
+export async function getPatientFiles(labKey: string, patientId: string): Promise<PatientFilesResponse> {
   if (USE_MOCK) {
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 800));
     if (labKey && patientId) {
-      return mockFiles;
+      return { files: mockFiles };
     }
     throw new Error('Invalid parameters');
   }
@@ -41,12 +41,24 @@ export async function getPatientFiles(labKey: string, patientId: string): Promis
   const response = await fetch(
     `${API_BASE}/get-files?lab=${encodeURIComponent(labKey)}&id=${encodeURIComponent(patientId)}`
   );
-  
+
   if (!response.ok) {
     throw new Error('فشل في تحميل النتائج');
   }
-  
+
   const data = await response.json();
+
+  // Gate: blocked patients should not receive file list at all.
+  if (data?.blocked) {
+    return {
+      files: [],
+      blocked: true,
+      amount: Number(data.amount) || 0,
+      markerFileId: data.markerFileId,
+      markerFileName: data.markerFileName,
+    };
+  }
+
   const rawFiles = (data?.files ?? data) as any[];
 
   const withUrls: ResultFile[] = (rawFiles || []).map((f: any) => {
@@ -69,7 +81,7 @@ export async function getPatientFiles(labKey: string, patientId: string): Promis
     };
   });
 
-  return withUrls;
+  return { files: withUrls };
 }
 
 export async function downloadFile(labKey: string, patientId: string, fileId: string): Promise<Blob> {

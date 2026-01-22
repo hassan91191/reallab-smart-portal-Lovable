@@ -8,13 +8,14 @@ import { Footer } from '@/components/Footer';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { PdfPagesViewer } from '@/components/PdfPagesViewer';
 import { StatusScreen } from '@/components/StatusScreen';
+import { BlockedPage } from '@/components/BlockedPage';
 import { getLabConfig, getPatientFiles, downloadFile, logAccess } from '@/lib/api';
 import { prettifyFileName } from '@/lib/utils';
 import type { LabConfig, ResultFile } from '@/types/lab';
 import { isImage, isPdf } from '@/types/lab';
 import { saveAs } from 'file-saver';
 
-type State = 'loading' | 'ready' | 'error' | 'missing';
+type State = 'loading' | 'ready' | 'blocked' | 'error' | 'missing';
 
 export default function ViewAll() {
   const [searchParams] = useSearchParams();
@@ -24,6 +25,7 @@ export default function ViewAll() {
 
   const [labConfig, setLabConfig] = useState<LabConfig | null>(null);
   const [files, setFiles] = useState<ResultFile[]>([]);
+  const [blockedAmount, setBlockedAmount] = useState<number>(0);
   const [state, setState] = useState<State>('loading');
 
   useEffect(() => {
@@ -36,10 +38,23 @@ export default function ViewAll() {
       try {
         setState('loading');
         const cfg = await getLabConfig(labKey);
-        const fs = await getPatientFiles(labKey, patientId);
+        const resp = await getPatientFiles(labKey, patientId);
         if (cancelled) return;
         setLabConfig(cfg);
-        setFiles(fs);
+        if (resp.blocked) {
+          setFiles([]);
+          setBlockedAmount(Number(resp.amount || 0));
+          setState('blocked');
+          try {
+            const k = `blocked_logged_${labKey}_${patientId}`;
+            if (!sessionStorage.getItem(k)) {
+              sessionStorage.setItem(k, '1');
+              await logAccess(labKey, patientId, resp.markerFileId || 'BLOCKED', 'BLOCKED', resp.markerFileName || '');
+            }
+          } catch {}
+          return;
+        }
+        setFiles(resp.files);
         setState('ready');
 
         // Safety: if someone opens this page directly, still log a single "VIEW_ALL"
@@ -81,6 +96,11 @@ export default function ViewAll() {
   if (state === 'error') {
     return <StatusScreen type="error" onRetry={() => window.location.reload()} />;
   }
+
+  if (state === 'blocked') {
+    return <BlockedPage labConfig={labConfig} amount={blockedAmount} />;
+  }
+
 
   return (
     <div className="min-h-screen flex flex-col">
