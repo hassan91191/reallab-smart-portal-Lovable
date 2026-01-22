@@ -60,7 +60,7 @@ export default function ViewAll() {
 
   const handleDownload = async (file: ResultFile) => {
     try {
-      await logAccess(labKey, patientId, file.id, \'DOWNLOAD\', file.name);
+      await logAccess(labKey, patientId, file.id, 'DOWNLOAD', file.name);
     } catch {}
     const blob = await downloadFile(labKey, patientId, file.id);
     saveAs(blob, file.name || 'result');

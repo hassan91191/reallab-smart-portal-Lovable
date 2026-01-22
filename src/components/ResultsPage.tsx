@@ -53,7 +53,7 @@ export function ResultsPage({ labConfig, patientId, files, isLoading = false }: 
     // Log once for the "bulk" action + per-file view
     try { await logAccess(labKey, patientId, 'ALL', 'VIEW_ALL', ''); } catch {}
     try {
-      await Promise.allSettled(files.map(f => logAccess(labKey, patientId, f.id, \'VIEW\', f.name)));
+      await Promise.allSettled(files.map(f => logAccess(labKey, patientId, f.id, 'VIEW', f.name)));
     } catch {}
 
     navigateToAll();
@@ -61,13 +61,13 @@ export function ResultsPage({ labConfig, patientId, files, isLoading = false }: 
 
   const handleViewFile = useCallback(async (file: ResultFile) => {
     if (!labKey || !patientId) return;
-    try { await logAccess(labKey, patientId, file.id, \'VIEW\', file.name); } catch {}
+    try { await logAccess(labKey, patientId, file.id, 'VIEW', file.name); } catch {}
     navigateToFile(file.id);
   }, [labKey, patientId, navigateToFile]);
 
   const handleDownloadOne = useCallback(async (file: ResultFile) => {
     if (!labKey || !patientId) return;
-    try { await logAccess(labKey, patientId, file.id, \'DOWNLOAD\', file.name); } catch {}
+    try { await logAccess(labKey, patientId, file.id, 'DOWNLOAD', file.name); } catch {}
     const blob = await downloadFile(labKey, patientId, file.id);
     saveAs(blob, file.name || 'result');
   }, [labKey, patientId]);
@@ -88,7 +88,7 @@ export function ResultsPage({ labConfig, patientId, files, isLoading = false }: 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       try {
-        try { await logAccess(labKey, patientId, file.id, \'DOWNLOAD\', file.name); } catch {}
+        try { await logAccess(labKey, patientId, file.id, 'DOWNLOAD', file.name); } catch {}
         const blob = await downloadFile(labKey, patientId, file.id);
         saveAs(blob, file.name || `result_${i + 1}`);
       } catch (e) {

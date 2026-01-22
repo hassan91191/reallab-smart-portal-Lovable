@@ -108,7 +108,7 @@ async function isDescendantOf(drive, fileId, ancestorId) {
 }
 
 function escapeQ(s) {
-  return String(s).replace(/'/g, "\\'");
+  return String(s).replace(/'/g, "\'");
 }
 
 function encodeRFC5987(str) {

@@ -73,7 +73,7 @@ exports.handler = async (event) => {
 
 function escapeQ(s) {
   // Escape single quotes for Drive query
-  return String(s).replace(/'/g, "\\'");
+  return String(s).replace(/'/g, "\'");
 }
 
 function json(statusCode, body) {
