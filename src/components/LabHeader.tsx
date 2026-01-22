@@ -48,18 +48,18 @@ export function LabHeader({ labConfig }: LabHeaderProps) {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.5 }}
         >
-          <div className="glass-card p-4 md:p-6 rounded-3xl logo-glow pulse-glow">
+          <div className="glass-card p-6 md:p-8 rounded-3xl logo-glow pulse-glow">
             {logoUrl && !logoError ? (
               <img
                 src={logoUrl}
                 alt={labConfig?.labName || 'شعار المختبر'}
-                className="h-20 w-auto md:h-28 object-contain"
+                className="h-40 w-40 md:h-48 md:w-48 object-cover rounded-2xl"
                 onError={() => setLogoError(true)}
               />
             ) : (
-              <div className="h-20 w-20 md:h-28 md:w-28 flex items-center justify-center">
+              <div className="h-40 w-40 md:h-48 md:w-48 flex items-center justify-center">
                 <svg 
-                  className="w-16 h-16 md:w-20 md:h-20 text-primary/60"
+                  className="w-24 h-24 md:w-28 md:h-28 text-primary/60"
                   viewBox="0 0 24 24" 
                   fill="none" 
                   stroke="currentColor" 

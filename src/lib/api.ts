@@ -47,7 +47,29 @@ export async function getPatientFiles(labKey: string, patientId: string): Promis
   }
   
   const data = await response.json();
-  return data.files || data;
+  const rawFiles = (data?.files ?? data) as any[];
+
+  const withUrls: ResultFile[] = (rawFiles || []).map((f: any) => {
+    const id = f.id ?? f.fileId ?? f.file_id;
+    const name = f.name ?? f.fileName ?? f.filename ?? String(id);
+    const mimeType = f.mimeType ?? f.mime_type ?? 'application/octet-stream';
+
+    const base = API_BASE;
+    const common = `lab=${encodeURIComponent(labKey)}&id=${encodeURIComponent(patientId)}&fileId=${encodeURIComponent(id)}`;
+    return {
+      id,
+      name,
+      mimeType,
+      size: f.size,
+      modifiedTime: f.modifiedTime ?? f.modified_time,
+      // inline view (PDF/image) in viewers
+      viewUrl: `${base}/download-file?${common}`,
+      // force attachment for direct download
+      downloadUrl: `${base}/download-file?${common}&download=1`,
+    };
+  });
+
+  return withUrls;
 }
 
 export async function downloadFile(labKey: string, patientId: string, fileId: string): Promise<Blob> {

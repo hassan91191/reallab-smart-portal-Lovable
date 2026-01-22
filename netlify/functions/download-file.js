@@ -33,7 +33,7 @@ exports.handler = async (event) => {
       if (!ok) return json(404, { error: 'logo_not_found' });
       const meta = await getMeta(drive, fileId);
       const streamRes = await drive.files.get({ fileId, alt: 'media', supportsAllDrives: true }, { responseType: 'arraybuffer' });
-      return bin(200, Buffer.from(streamRes.data), meta.mimeType || 'application/octet-stream', meta.name, forceDownload ? 'attachment' : 'inline');
+      return bin(200, Buffer.from(streamRes.data), meta.mimeType || 'application/octet-stream', meta.name, forceDownload ? 'attachment' : 'inline', 'public, max-age=86400, immutable');
     }
 
     if (!patientId) return json(400, { error: 'missing_id' });
@@ -118,14 +118,15 @@ function encodeRFC5987(str) {
     .replace(/%(7C|60|5E)/g, (m) => m.toLowerCase());
 }
 
-function bin(statusCode, buf, mime, filename, disposition = 'inline') {
+function bin(statusCode, buf, mime, filename, disposition = 'inline', cacheControl = 'no-store') {
   return {
     statusCode,
     isBase64Encoded: true,
     headers: {
       'content-type': mime,
       'content-disposition': `${disposition}; filename*=UTF-8''${encodeRFC5987(filename || 'file')}`,
-      'cache-control': 'no-store',
+      'cache-control': cacheControl,
+      ...(cacheControl !== 'no-store' ? { 'netlify-cdn-cache-control': cacheControl } : {}),
     },
     body: Buffer.from(buf).toString('base64'),
   };

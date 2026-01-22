@@ -27,7 +27,7 @@ export function ResultCard({ file, index, onView, onDownload }: ResultCardProps)
 
   return (
     <motion.div 
-      className="glass-card glow-ring rounded-2xl p-5 space-y-4"
+      className="glass-card glow-ring rounded-2xl p-5 space-y-4 overflow-hidden"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05, duration: 0.4 }}

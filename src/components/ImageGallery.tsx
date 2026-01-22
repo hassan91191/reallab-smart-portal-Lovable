@@ -154,7 +154,7 @@ export function ImageGallery({ images, initialIndex, onClose, onDownload }: Imag
                 whileTap={{ scale: 0.95 }}
               >
                 <img
-                  src={img.viewUrl}
+                  src={img.viewUrl || img.downloadUrl || ""}
                   alt={img.name}
                   className="w-full h-full object-cover"
                 />

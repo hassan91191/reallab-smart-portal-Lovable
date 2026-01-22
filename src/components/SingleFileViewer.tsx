@@ -83,7 +83,7 @@ export function SingleFileViewer({ file, onClose, onDownload }: SingleFileViewer
       <div className="flex-1 overflow-auto flex items-center justify-center p-4">
         {isImage(file) ? (
           <motion.img
-            src={file.viewUrl}
+            src={file.viewUrl || file.downloadUrl || ""}
             alt={file.name}
             className="max-w-full max-h-full object-contain"
             style={{
@@ -96,7 +96,7 @@ export function SingleFileViewer({ file, onClose, onDownload }: SingleFileViewer
           />
         ) : (
           <iframe
-            src={file.viewUrl}
+            src={file.viewUrl || file.downloadUrl || ""}
             className="w-full h-full border-0 rounded-lg"
             title={file.name}
           />
