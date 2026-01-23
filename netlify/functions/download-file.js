@@ -5,6 +5,17 @@ const { resolveLogoFileId } = require('./_logo_resolver');
 // Marker file prefix created by Whats Sender to indicate portal access should be blocked
 const BLOCK_MARKER_PREFIX = '__PORTAL_BLOCKED__';
 
+// IMPORTANT: Netlify's esbuild bundling sometimes inlines/minifies the file in a way that can
+// break references to helper symbols if they are not in scope where used. Keeping `json()`
+// defined before handler avoids "ReferenceError: json is not defined" in production.
+function json(statusCode, body) {
+  return {
+    statusCode,
+    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'netlify-cdn-cache-control': 'no-store' },
+    body: JSON.stringify(body),
+  };
+}
+
 exports.handler = async (event) => {
   try {
     const qp = event.queryStringParameters || {};
@@ -177,10 +188,4 @@ function bin(statusCode, buf, mime, filename, disposition = 'inline', cacheContr
   };
 }
 
-function json(statusCode, body) {
-  return {
-    statusCode,
-    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
-    body: JSON.stringify(body),
-  };
-}
+// json() helper is defined above the handler.

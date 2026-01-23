@@ -1,6 +1,6 @@
 const { getLabConfigCached } = require('./_lab_config_provider');
 const { getClients } = require('./_google');
-const { resolveLogoFileId } = require('./_logo_resolver');
+const { resolveLogoFileMeta } = require('./_logo_resolver');
 
 exports.handler = async (event) => {
   try {
@@ -15,23 +15,33 @@ exports.handler = async (event) => {
     }
 
     // Resolve logo dynamically from Drive folder "Lab Logo" (best-effort)
+    // We want BOTH id + name so the frontend can cache-bust using v=<fileName>.
     let resolvedLogoFileId = cfg.logoFileId;
+    let resolvedLogoFileName = cfg.logoFileName;
     try {
       const { drive } = getClients();
-      const dynamic = await resolveLogoFileId(drive, cfg.driveFolderId);
-      if (dynamic) resolvedLogoFileId = dynamic;
+      const dynamic = await resolveLogoFileMeta(drive, cfg.driveFolderId);
+      if (dynamic?.id) {
+        resolvedLogoFileId = dynamic.id;
+        resolvedLogoFileName = dynamic.name;
+      }
     } catch (e) {
       console.log('Logo resolve failed:', e.message || String(e));
     }
 
+    const logoUrl = resolvedLogoFileId
+      ? `/.netlify/functions/download-file?lab=${encodeURIComponent(lab)}&fileId=${encodeURIComponent(resolvedLogoFileId)}&logo=1&v=${encodeURIComponent(resolvedLogoFileName || resolvedLogoFileId)}`
+      : undefined;
+
+    // IMPORTANT: in production we DO NOT cache this endpoint, because logo needs to update immediately.
+    // The heavier caching is handled inside _lab_config_provider / google clients when needed.
     return json(200, {
       labKey: cfg.labKey,
       driveFolderId: cfg.driveFolderId,
       logSheetId: cfg.logSheetId,
       logoFileId: resolvedLogoFileId,
-      logoUrl: resolvedLogoFileId
-        ? `/.netlify/functions/download-file?lab=${encodeURIComponent(lab)}&fileId=${encodeURIComponent(resolvedLogoFileId)}&logo=1`
-        : undefined,
+      logoFileName: resolvedLogoFileName,
+      logoUrl,
       title: cfg.title || 'نتائج التحاليل الطبية',
       subtitle: undefined,
     });
@@ -41,21 +51,10 @@ exports.handler = async (event) => {
 };
 
 function json(statusCode, body) {
-  const ttlRaw = process.env.CACHE_TTL_SECONDS || '600';
-  const ttl = parseInt(ttlRaw, 10);
-  const maxAge = Number.isFinite(ttl) && ttl > 0 ? ttl : 600;
-
-  const headers = {
-    'content-type': 'application/json; charset=utf-8',
-  };
-
-  if (statusCode === 200) {
-    headers['cache-control'] = `public, max-age=${maxAge}`;
-    headers['netlify-cdn-cache-control'] = `public, max-age=${maxAge}`;
-  } else {
-    headers['cache-control'] = 'no-store';
-  }
-
+  const headers = { 'content-type': 'application/json; charset=utf-8' };
+  // Do not cache: ensures logo/config always fresh in Netlify + browsers.
+  headers['cache-control'] = 'no-store';
+  headers['netlify-cdn-cache-control'] = 'no-store';
   return {
     statusCode,
     headers,

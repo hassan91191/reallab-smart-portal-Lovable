@@ -1,15 +1,21 @@
 // Resolve lab logo dynamically from Google Drive.
 // Expected structure:
-//   <driveFolderId>/Lab Logo/Logo.* (png/jpg/svg/...)
+//   <Lab Results - LABKEY>/<Lab Logo>/<Logo_yyyyMMdd_HHmmss.png>
 //
-// This is a best-effort helper. If no logo is found, returns null.
+// The Whats Sender uploads the logo using a timestamped name to bust browser/CDN cache.
+// We return both fileId + fileName so the frontend can include `v=<fileName>`.
 
 function normalize(s) {
   return String(s || '').trim();
 }
 
+function lower(s) {
+  return normalize(s).toLowerCase();
+}
+
 // Small in-memory cache per warm instance
-const mem = new Map(); // parentFolderId -> { expiresAtMs, fileId }
+// parentFolderId -> { expiresAtMs, meta: { id, name } }
+const mem = new Map();
 
 function getFromMem(key) {
   const e = mem.get(key);
@@ -18,44 +24,73 @@ function getFromMem(key) {
     mem.delete(key);
     return null;
   }
-  return e.fileId;
+  return e.meta;
 }
 
-function setMem(key, fileId, ttlMs) {
-  mem.set(key, { expiresAtMs: Date.now() + ttlMs, fileId });
+function setMem(key, meta, ttlMs) {
+  mem.set(key, { expiresAtMs: Date.now() + ttlMs, meta });
 }
 
-async function resolveLogoFileId(drive, driveFolderId) {
-  const parentId = normalize(driveFolderId);
-  if (!parentId) return null;
-
-  // 60s cache: still "each open" practically, but avoids hot looping.
-  const cached = getFromMem(parentId);
-  if (cached) return cached;
-
-  // Find "Lab Logo" folder under parent
-  const qLogoFolder = [
+async function findLabLogoFolderId(drive, parentId) {
+  // Search for a folder named "Lab Logo" under parent.
+  // We do a tolerant search because some drives may differ in case.
+  const q = [
     `'${parentId}' in parents`,
     `mimeType = 'application/vnd.google-apps.folder'`,
-    `name = 'Lab Logo'`,
     `trashed = false`,
   ].join(' and ');
 
-  const folderRes = await drive.files.list({
-    q: qLogoFolder,
+  const res = await drive.files.list({
+    q,
     fields: 'files(id,name)',
-    pageSize: 5,
+    pageSize: 100,
     includeItemsFromAllDrives: true,
     supportsAllDrives: true,
   });
 
-  const logoFolder = folderRes.data.files?.[0];
-  if (!logoFolder) return null;
+  const folders = res.data.files || [];
+  const exact = folders.find(f => lower(f.name) === 'lab logo');
+  if (exact) return exact.id;
 
-  // List files inside logo folder
+  // fallback: any folder containing both words
+  const fallback = folders.find(f => {
+    const n = lower(f.name);
+    return n.includes('lab') && n.includes('logo');
+  });
+
+  return fallback ? fallback.id : null;
+}
+
+function pickLogoFile(files) {
+  if (!files || files.length === 0) return null;
+  // Prefer timestamp format: Logo_yyyyMMdd_HHmmss.png
+  const reTs = /^logo_\d{8}_\d{6}\.png$/i;
+  const ts = files.find(f => reTs.test(String(f.name || '')));
+  if (ts) return ts;
+
+  // Otherwise prefer anything starting with logo
+  const byPrefix = files.find(f => lower(f.name).startsWith('logo'));
+  if (byPrefix) return byPrefix;
+
+  // Otherwise first (files are ordered by modifiedTime desc)
+  return files[0];
+}
+
+async function resolveLogoFileMeta(drive, driveFolderId) {
+  const parentId = normalize(driveFolderId);
+  if (!parentId) return null;
+
+  // 30s cache: keeps things responsive but still updates quickly.
+  const cached = getFromMem(parentId);
+  if (cached) return cached;
+
+  const logoFolderId = await findLabLogoFolderId(drive, parentId);
+  if (!logoFolderId) return null;
+
   const qFiles = [
-    `'${logoFolder.id}' in parents`,
+    `'${logoFolderId}' in parents`,
     `trashed = false`,
+    `mimeType != 'application/vnd.google-apps.folder'`,
   ].join(' and ');
 
   const filesRes = await drive.files.list({
@@ -68,19 +103,17 @@ async function resolveLogoFileId(drive, driveFolderId) {
   });
 
   const files = filesRes.data.files || [];
-  if (files.length === 0) return null;
+  const chosen = pickLogoFile(files);
+  if (!chosen || !chosen.id) return null;
 
-  // Prefer exact "Logo" (case-insensitive) then startsWith("logo")
-  const pick = (predicate) => files.find((f) => predicate(String(f.name || '')));
-  const byExact = pick((n) => n.trim().toLowerCase() === 'logo');
-  const byPrefix = pick((n) => n.trim().toLowerCase().startsWith('logo'));
-  const byContains = pick((n) => n.trim().toLowerCase().includes('logo'));
-
-  const chosen = byExact || byPrefix || byContains || files[0];
-  const fileId = chosen?.id || null;
-
-  if (fileId) setMem(parentId, fileId, 60 * 1000);
-  return fileId;
+  const meta = { id: chosen.id, name: chosen.name || 'Logo.png' };
+  setMem(parentId, meta, 30 * 1000);
+  return meta;
 }
 
-module.exports = { resolveLogoFileId };
+async function resolveLogoFileId(drive, driveFolderId) {
+  const meta = await resolveLogoFileMeta(drive, driveFolderId);
+  return meta ? meta.id : null;
+}
+
+module.exports = { resolveLogoFileMeta, resolveLogoFileId };
