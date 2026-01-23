@@ -36,7 +36,8 @@ exports.handler = async (event) => {
       if (!ok) return json(404, { error: 'logo_not_found' });
       const meta = await getMeta(drive, fileId);
       const streamRes = await drive.files.get({ fileId, alt: 'media', supportsAllDrives: true }, { responseType: 'arraybuffer' });
-      return bin(200, Buffer.from(streamRes.data), meta.mimeType || 'application/octet-stream', meta.name, forceDownload ? 'attachment' : 'inline', 'public, max-age=86400, immutable');
+      // Safe to cache long-term because get-lab-config returns a versioned URL (v=...) that changes when the logo name changes.
+      return bin(200, Buffer.from(streamRes.data), meta.mimeType || 'application/octet-stream', meta.name, forceDownload ? 'attachment' : 'inline', 'public, max-age=31536000, immutable');
     }
 
     if (!patientId) return json(400, { error: 'missing_id' });

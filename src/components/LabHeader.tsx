@@ -14,17 +14,19 @@ export function LabHeader({ labConfig }: LabHeaderProps) {
   useEffect(() => {
     if (!labConfig?.labKey) return;
 
-    // Check cache first
-    const cached = getCachedLogo(labConfig.labKey);
-    if (cached) {
-      setLogoUrl(cached);
+    // Prefer the server-provided logoUrl (it is versioned, so it updates instantly when the logo changes).
+    if (labConfig.logoUrl) {
+      setLogoError(false);
+      setLogoUrl(labConfig.logoUrl);
+      cacheLogo(labConfig.labKey, labConfig.logoUrl);
       return;
     }
 
-    // Use logoUrl from config if available
-    if (labConfig.logoUrl) {
-      setLogoUrl(labConfig.logoUrl);
-      cacheLogo(labConfig.labKey, labConfig.logoUrl);
+    // Fallback: use cached logo if backend didn't provide one
+    const cached = getCachedLogo(labConfig.labKey);
+    if (cached) {
+      setLogoError(false);
+      setLogoUrl(cached);
     }
   }, [labConfig]);
 
