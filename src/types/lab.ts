@@ -12,6 +12,8 @@ export interface LabConfig {
 
   // Logo fields
   logoFileId?: string;
+  // Optional: returned by backend to support cache-busting (e.g. Logo_yyyyMMdd_HHmmss.png)
+  logoFileName?: string;
   // May be relative (/.netlify/functions/...) or absolute
   logoUrl?: string;
 }

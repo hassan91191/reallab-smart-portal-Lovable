@@ -14,7 +14,12 @@ export async function getLabConfig(labKey: string): Promise<LabConfig> {
     throw new Error('Invalid lab key');
   }
 
-  const response = await fetch(`${API_BASE}/get-lab-config?lab=${encodeURIComponent(labKey)}`);
+  // IMPORTANT: always bypass any intermediate caching for lab config,
+  // because logo version can change at any time.
+  const response = await fetch(
+    `${API_BASE}/get-lab-config?lab=${encodeURIComponent(labKey)}&_t=${Date.now()}`,
+    { cache: 'no-store' }
+  );
   
   if (!response.ok) {
     throw new Error('فشل في تحميل بيانات المختبر');

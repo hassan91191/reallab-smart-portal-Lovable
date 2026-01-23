@@ -1,6 +1,6 @@
 const { getLabConfigCached } = require('./_lab_config_provider');
 const { getClients } = require('./_google');
-const { resolveLogoFileId } = require('./_logo_resolver');
+const { resolveLogoMeta } = require('./_logo_resolver');
 
 exports.handler = async (event) => {
   try {
@@ -15,22 +15,30 @@ exports.handler = async (event) => {
     }
 
     // Resolve logo dynamically from Drive folder "Lab Logo" (best-effort)
+    // We return both fileId and fileName so the frontend can cache-bust by version.
     let resolvedLogoFileId = cfg.logoFileId;
+    let resolvedLogoFileName = cfg.logoFileName;
     try {
       const { drive } = getClients();
-      const dynamic = await resolveLogoFileId(drive, cfg.driveFolderId);
-      if (dynamic) resolvedLogoFileId = dynamic;
+      const dynamic = await resolveLogoMeta(drive, cfg.driveFolderId);
+      if (dynamic?.id) {
+        resolvedLogoFileId = dynamic.id;
+        resolvedLogoFileName = dynamic.name || resolvedLogoFileName;
+      }
     } catch (e) {
       console.log('Logo resolve failed:', e.message || String(e));
     }
+
+    const version = resolvedLogoFileName || resolvedLogoFileId || '';
 
     return json(200, {
       labKey: cfg.labKey,
       driveFolderId: cfg.driveFolderId,
       logSheetId: cfg.logSheetId,
       logoFileId: resolvedLogoFileId,
+      logoFileName: resolvedLogoFileName,
       logoUrl: resolvedLogoFileId
-        ? `/.netlify/functions/download-file?lab=${encodeURIComponent(lab)}&fileId=${encodeURIComponent(resolvedLogoFileId)}&logo=1`
+        ? `/.netlify/functions/download-file?lab=${encodeURIComponent(lab)}&fileId=${encodeURIComponent(resolvedLogoFileId)}&logo=1&v=${encodeURIComponent(version)}`
         : undefined,
       title: cfg.title || 'نتائج التحاليل الطبية',
       subtitle: undefined,
@@ -41,20 +49,13 @@ exports.handler = async (event) => {
 };
 
 function json(statusCode, body) {
-  const ttlRaw = process.env.CACHE_TTL_SECONDS || '600';
-  const ttl = parseInt(ttlRaw, 10);
-  const maxAge = Number.isFinite(ttl) && ttl > 0 ? ttl : 600;
-
   const headers = {
     'content-type': 'application/json; charset=utf-8',
   };
 
-  if (statusCode === 200) {
-    headers['cache-control'] = `public, max-age=${maxAge}`;
-    headers['netlify-cdn-cache-control'] = `public, max-age=${maxAge}`;
-  } else {
-    headers['cache-control'] = 'no-store';
-  }
+  // IMPORTANT: this endpoint must reflect latest logo changes immediately.
+  // So we disable caching here; the logo itself can be cached safely because its URL changes when the logo name changes.
+  headers['cache-control'] = 'no-store';
 
   return {
     statusCode,
